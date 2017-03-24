@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/giantswarm/certificatetpr.svg?style=svg)](https://circleci.com/gh/giantswarm/certificatetpr)
+
 # certificatetpr
 
 Specification of the third party object used to issue certificates for Kubernetes clusters running
