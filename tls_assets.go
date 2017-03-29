@@ -61,8 +61,8 @@ func ValidComponent(el ClusterComponent, components []ClusterComponent) bool {
 func NewAssetsBundle() AssetsBundle {
 	bundle := make(map[ClusterComponent]map[TLSAssetType][]byte, len(ClusterComponents))
 
-	for k := range bundle {
-		bundle[k] = make(map[TLSAssetType][]byte, len(TLSAssetTypes))
+	for _, c := range ClusterComponents {
+		bundle[c] = make(map[TLSAssetType][]byte, len(TLSAssetTypes))
 	}
 
 	return bundle
