@@ -38,8 +38,15 @@ const (
 	ClusterIDLabel string = "clusterID"
 )
 
+// AssetsBundleKey is a struct key for an AssetsBundle
+// cfr. https://blog.golang.org/go-maps-in-action
+type AssetsBundleKey struct {
+	Component ClusterComponent
+	Type      TLSAssetType
+}
+
 // AssetsBundle is a structure that contains all the assets for all the components
-type AssetsBundle map[ClusterComponent]map[TLSAssetType][]byte
+type AssetsBundle map[AssetsBundleKey][]byte
 
 // ClusterComponents is a slice enumerating all the components that make up the cluster
 var ClusterComponents = []ClusterComponent{APIComponent, WorkerComponent, EtcdComponent, CalicoComponent}
@@ -55,15 +62,4 @@ func ValidComponent(el ClusterComponent, components []ClusterComponent) bool {
 		}
 	}
 	return false
-}
-
-// NewAssetsBundle initializes the nested map that contains the TLS assets for all the components
-func NewAssetsBundle() AssetsBundle {
-	bundle := make(map[ClusterComponent]map[TLSAssetType][]byte, len(ClusterComponents))
-
-	for _, c := range ClusterComponents {
-		bundle[c] = make(map[TLSAssetType][]byte, len(TLSAssetTypes))
-	}
-
-	return bundle
 }
