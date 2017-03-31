@@ -4,9 +4,17 @@ package certificatetpr
 // These are used when getting a secret from the k8s API, to identify the component the secret belongs to
 type ClusterComponent string
 
+func (c ClusterComponent) String() string {
+	return string(c)
+}
+
 // TLSAssetType represents the type of TLS asset, e.g. a CA certificate, or a certificate key
 // These are used when getting a secret from the k8s API, to identify the specific type of TLS asset that is contained in the secret
 type TLSAssetType string
+
+func (t TLSAssetType) String() string {
+	return string(t)
+}
 
 // These constants are used to match each asset in the secret
 const (
