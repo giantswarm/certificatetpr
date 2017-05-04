@@ -39,6 +39,8 @@ const (
 	EtcdComponent ClusterComponent = "etcd"
 	// CalicoComponent is the calico component.
 	CalicoComponent ClusterComponent = "calico"
+	// ServiceAccountComponent is the service-account component.
+	ServiceAccountComponent ClusterComponent = "service-account"
 )
 
 // These constants are used when filtering the secrets, to only retrieve the
@@ -64,7 +66,13 @@ type AssetsBundle map[AssetsBundleKey][]byte
 
 // ClusterComponents is a slice enumerating all the components that make up the
 // cluster.
-var ClusterComponents = []ClusterComponent{APIComponent, WorkerComponent, EtcdComponent, CalicoComponent}
+var ClusterComponents = []ClusterComponent{
+	APIComponent,
+	WorkerComponent,
+	EtcdComponent,
+	CalicoComponent,
+	ServiceAccountComponent,
+}
 
 // TLSAssetTypes is a slice enumerating all the TLS assets we need to boot the
 // cluster.
