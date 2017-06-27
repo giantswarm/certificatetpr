@@ -6,8 +6,8 @@ import (
 
 // List represents a list of CustomObject resources.
 type List struct {
-	metav1.ObjectMeta `json:"metadata"`
 	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata" yaml:"metadata"`
 
 	Items []CustomObject `json:"items" yaml:"items"`
 }
