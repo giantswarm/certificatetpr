@@ -1,4 +1,4 @@
-package fake
+package certificatetprtest
 
 import "github.com/giantswarm/certificatetpr"
 
