@@ -1,9 +1,5 @@
 package certificatetpr
 
-type Searcher interface {
-	SearchCerts(clusterID string) (AssetsBundle, error)
-}
-
 type Spec struct {
 	AllowBareDomains bool     `json:"allowBareDomains" yaml:"allowBareDomains"`
 	AltNames         []string `json:"altNames" yaml:"altNames"`

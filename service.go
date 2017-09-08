@@ -14,6 +14,10 @@ import (
 	"k8s.io/client-go/pkg/api/v1"
 )
 
+type Searcher interface {
+	SearchCerts(clusterID string) (AssetsBundle, error)
+}
+
 const (
 	// WatchTimeOut is the time to wait on watches against the Kubernetes API
 	// before giving up and throwing an error.
