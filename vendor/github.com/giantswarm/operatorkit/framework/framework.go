@@ -4,12 +4,9 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
-	"github.com/cenk/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/giantswarm/operatorkit/framework/canceledcontext"
@@ -19,7 +16,6 @@ import (
 type Config struct {
 	// Dependencies.
 
-	BackOff backoff.BackOff
 	// InitCtxFunc is to prepare the given context for a single reconciliation
 	// loop. Operators can implement common context packages to enable
 	// communication between resources. These context packages can be set up
@@ -36,7 +32,6 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		// Dependencies.
-		BackOff:     nil,
 		InitCtxFunc: nil,
 		Logger:      nil,
 		Resources:   nil,
@@ -45,7 +40,6 @@ func DefaultConfig() Config {
 
 type Framework struct {
 	// Dependencies.
-	backOff     backoff.BackOff
 	initializer func(ctx context.Context, obj interface{}) (context.Context, error)
 	logger      micrologger.Logger
 	resources   []Resource
@@ -57,9 +51,6 @@ type Framework struct {
 // New creates a new configured operator framework.
 func New(config Config) (*Framework, error) {
 	// Dependencies.
-	if config.BackOff == nil {
-		return nil, microerror.Maskf(invalidConfigError, "config.BackOff must not be empty")
-	}
 	if config.Logger == nil {
 		return nil, microerror.Maskf(invalidConfigError, "config.Logger must not be empty")
 	}
@@ -69,7 +60,6 @@ func New(config Config) (*Framework, error) {
 
 	newFramework := &Framework{
 		// Dependencies.
-		backOff:     config.BackOff,
 		initializer: config.InitCtxFunc,
 		logger:      config.Logger,
 		resources:   config.Resources,
@@ -292,36 +282,6 @@ func ProcessDelete(ctx context.Context, obj interface{}, resources []Resource) e
 	}
 
 	return nil
-}
-
-// ProcessEvents takes the event channels created by the operatorkit informer
-// and executes the framework's event functions accordingly.
-func (f *Framework) ProcessEvents(ctx context.Context, deleteChan chan watch.Event, updateChan chan watch.Event, errChan chan error) {
-	operation := func() error {
-		for {
-			select {
-			case e := <-deleteChan:
-				f.DeleteFunc(e.Object)
-			case e := <-updateChan:
-				f.UpdateFunc(nil, e.Object)
-			case err := <-errChan:
-				return microerror.Mask(err)
-			case <-ctx.Done():
-				return nil
-			}
-		}
-
-		return nil
-	}
-
-	notifier := func(err error, d time.Duration) {
-		f.logger.Log("error", fmt.Sprintf("%#v", err))
-	}
-
-	err := backoff.RetryNotify(operation, f.backOff, notifier)
-	if err != nil {
-		f.logger.Log("error", fmt.Sprintf("%#v", err))
-	}
 }
 
 // ProcessUpdate is a drop-in for an informer's UpdateFunc. It receives the new
