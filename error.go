@@ -11,7 +11,7 @@ func IsInvalidConfig(err error) bool {
 	return errgo.Cause(err) == invalidConfigError
 }
 
-var secretsRetrievalFailedError = errgo.New("secrets retreival failed")
+var secretsRetrievalFailedError = errgo.New("secrets retrieval failed")
 
 // IsSecretsRetrievalFailed asserts secretsRetrievalFailedError.
 func IsSecretsRetrievalFailed(err error) bool {

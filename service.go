@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	// WatchTimeOut is the time to wait on watches against the Kubernetes API
+	// WatchTimeOut is the default time to wait on watches against the Kubernetes API
 	// before giving up and throwing an error.
 	WatchTimeOut = 90 * time.Second
 )
@@ -26,6 +26,8 @@ type ServiceConfig struct {
 	// Dependencies.
 	K8sClient kubernetes.Interface
 	Logger    micrologger.Logger
+
+	WatchTimeOut time.Duration
 }
 
 // DefaultServiceConfig provides a default configuration to create a new
@@ -35,6 +37,8 @@ func DefaultServiceConfig() ServiceConfig {
 		// Dependencies.
 		K8sClient: nil,
 		Logger:    nil,
+
+		WatchTimeOut: WatchTimeOut,
 	}
 }
 
@@ -48,10 +52,16 @@ func NewService(config ServiceConfig) (*Service, error) {
 		return nil, microerror.Maskf(invalidConfigError, "config.Logger must not be empty")
 	}
 
+	if config.WatchTimeOut.Seconds() == 0 {
+		config.WatchTimeOut = WatchTimeOut
+	}
+
 	newService := &Service{
 		// Dependencies.
 		k8sClient: config.K8sClient,
 		logger:    config.Logger,
+
+		watchTimeOut: config.WatchTimeOut,
 	}
 
 	return newService, nil
@@ -62,6 +72,8 @@ type Service struct {
 	// Dependencies.
 	k8sClient kubernetes.Interface
 	logger    micrologger.Logger
+
+	watchTimeOut time.Duration
 }
 
 // SearchCerts watches for all secrets of a cluster  and returns it as
@@ -138,7 +150,7 @@ func (s *Service) SearchCertsForComponent(clusterID, componentName string) (Asse
 			case watch.Error:
 				return nil, microerror.Maskf(secretsRetrievalFailedError, "there was an error in the watcher: %v", apierrors.FromObject(event.Object))
 			}
-		case <-time.After(WatchTimeOut):
+		case <-time.After(s.watchTimeOut):
 			return nil, microerror.Maskf(secretsRetrievalFailedError, "timed out waiting for secrets")
 		}
 	}
