@@ -73,7 +73,6 @@ var ClusterComponents = []ClusterComponent{
 	WorkerComponent,
 	EtcdComponent,
 	CalicoComponent,
-	NodeControllerComponent,
 	ServiceAccountComponent,
 }
 
@@ -102,9 +101,6 @@ type CompactTLSAssets struct {
 	EtcdServerCA      string
 	EtcdServerKey     string
 	EtcdServerCrt     string
-	NodeControllerCA  string
-	NodeControllerKey string
-	NodeControllerCrt string
 	ServiceAccountCA  string
 	ServiceAccountKey string
 	ServiceAccountCrt string
