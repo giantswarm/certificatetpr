@@ -39,8 +39,8 @@ const (
 	EtcdComponent ClusterComponent = "etcd"
 	// CalicoComponent is the calico component.
 	CalicoComponent ClusterComponent = "calico"
-	// NodeController is the node-controller component.
-	NodeController ClusterComponent = "node-controller"
+	// NodeControllerComponent is the node-controller component.
+	NodeControllerComponent ClusterComponent = "node-controller"
 	// ServiceAccountComponent is the service-account component.
 	ServiceAccountComponent ClusterComponent = "service-account"
 )
@@ -73,7 +73,7 @@ var ClusterComponents = []ClusterComponent{
 	WorkerComponent,
 	EtcdComponent,
 	CalicoComponent,
-	NodeController,
+	NodeControllerComponent,
 	ServiceAccountComponent,
 }
 
