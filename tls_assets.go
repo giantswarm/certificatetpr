@@ -39,8 +39,6 @@ const (
 	EtcdComponent ClusterComponent = "etcd"
 	// CalicoComponent is the calico component.
 	CalicoComponent ClusterComponent = "calico"
-	// NodeController is the node-controller component.
-	NodeController ClusterComponent = "node-controller"
 	// ServiceAccountComponent is the service-account component.
 	ServiceAccountComponent ClusterComponent = "service-account"
 )
@@ -73,7 +71,6 @@ var ClusterComponents = []ClusterComponent{
 	WorkerComponent,
 	EtcdComponent,
 	CalicoComponent,
-	NodeController,
 	ServiceAccountComponent,
 }
 
@@ -96,19 +93,16 @@ type CompactTLSAssets struct {
 	APIServerCA       string
 	APIServerKey      string
 	APIServerCrt      string
+	WorkerCA          string
+	WorkerKey         string
+	WorkerCrt         string
+	ServiceAccountCA  string
+	ServiceAccountKey string
+	ServiceAccountCrt string
 	CalicoClientCA    string
 	CalicoClientKey   string
 	CalicoClientCrt   string
 	EtcdServerCA      string
 	EtcdServerKey     string
 	EtcdServerCrt     string
-	NodeControllerCA  string
-	NodeControllerKey string
-	NodeControllerCrt string
-	ServiceAccountCA  string
-	ServiceAccountKey string
-	ServiceAccountCrt string
-	WorkerCA          string
-	WorkerKey         string
-	WorkerCrt         string
 }
