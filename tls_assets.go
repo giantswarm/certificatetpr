@@ -74,7 +74,6 @@ var ClusterComponents = []ClusterComponent{
 	EtcdComponent,
 	CalicoComponent,
 	ServiceAccountComponent,
-	PrometheusComponent,
 }
 
 // TLSAssetTypes is a slice enumerating all the TLS assets we need to boot the
@@ -99,16 +98,13 @@ type CompactTLSAssets struct {
 	WorkerCA          string
 	WorkerKey         string
 	WorkerCrt         string
-	EtcdServerCA      string
-	EtcdServerKey     string
-	EtcdServerCrt     string
-	CalicoClientCA    string
-	CalicoClientKey   string
-	CalicoClientCrt   string
 	ServiceAccountCA  string
 	ServiceAccountKey string
 	ServiceAccountCrt string
-	PrometheusCA      string
-	PrometheusKey     string
-	PrometheusCrt     string
+	CalicoClientCA    string
+	CalicoClientKey   string
+	CalicoClientCrt   string
+	EtcdServerCA      string
+	EtcdServerKey     string
+	EtcdServerCrt     string
 }
