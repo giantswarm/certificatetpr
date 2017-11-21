@@ -15,5 +15,5 @@ type Spec struct {
 	IPSANs           []string           `json:"ipSans" yaml:"ipSans"`
 	Organizations    []string           `json:"organizations" yaml:"organizations"`
 	TTL              string             `json:"ttl" yaml:"ttl"`
-	VersionBundle    spec.VersionBundle `json:"version_bundle" yaml:"version_bundle"`
+	VersionBundle    spec.VersionBundle `json:"versionBundle" yaml:"versionBundle"`
 }

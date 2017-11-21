@@ -12,5 +12,5 @@ ipSans:
 organizations:
 - system:masters
 ttl: 4320h
-version_bundle:
+versionBundle:
   version: 0.1.0
