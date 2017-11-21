@@ -39,6 +39,8 @@ const (
 	EtcdComponent ClusterComponent = "etcd"
 	// FlanneldComponent is the flanneld cluster component.
 	FlanneldComponent ClusterComponent = "flanneld"
+	// KubeStateMetricsComponent is the kube-state-metrics component.
+	KubeStateMetricsComponent ClusterComponent = "kube-state-metrics"
 	// PrometheusComponent is the prometheus component.
 	PrometheusComponent ClusterComponent = "prometheus"
 	// ServiceAccountComponent is the service-account component.
@@ -79,6 +81,13 @@ var ClusterComponents = []ClusterComponent{
 	EtcdComponent,
 	ServiceAccountComponent,
 	WorkerComponent,
+}
+
+// MonitoringComponents is a slice enumerating all the components that make up
+// monitoring.
+var MonitoringComponents = []ClusterComponent{
+	PrometheusComponent,
+	KubeStateMetricsComponent,
 }
 
 // TLSAssetTypes is a slice enumerating all the TLS assets we need to boot the
