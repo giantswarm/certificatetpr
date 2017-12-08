@@ -1,4 +1,4 @@
-package crd
+package k8srestconfig
 
 import (
 	"github.com/giantswarm/microerror"
