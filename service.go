@@ -6,40 +6,36 @@ import (
 
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/pkg/api"
-	"k8s.io/client-go/pkg/api/v1"
 )
 
 const (
-	// WatchTimeOut is the time to wait on watches against the Kubernetes API
+	// watchTimeOut is the time to wait on watches against the Kubernetes API
 	// before giving up and throwing an error.
-	WatchTimeOut = 90 * time.Second
+	watchTimeOut = 90 * time.Second
 )
 
-// ServiceConfig represents the configuration used to create a certificate TPR
-// service.
-type ServiceConfig struct {
+type Config struct {
 	// Dependencies.
+
 	K8sClient kubernetes.Interface
 	Logger    micrologger.Logger
 }
 
-// DefaultServiceConfig provides a default configuration to create a new
-// certificate TPR service by best effort.
-func DefaultServiceConfig() ServiceConfig {
-	return ServiceConfig{
+func DefaultConfig() Config {
+	return Config{
 		// Dependencies.
 		K8sClient: nil,
 		Logger:    nil,
 	}
 }
 
-// NewService creates a new configured certificate TPR service.
-func NewService(config ServiceConfig) (*Service, error) {
+func NewSearcher(config Config) (*Service, error) {
 	// Dependencies.
 	if config.K8sClient == nil {
 		return nil, microerror.Maskf(invalidConfigError, "config.K8sClient must not be empty")
@@ -48,98 +44,125 @@ func NewService(config ServiceConfig) (*Service, error) {
 		return nil, microerror.Maskf(invalidConfigError, "config.Logger must not be empty")
 	}
 
-	newService := &Service{
+	s := &Service{
 		// Dependencies.
 		k8sClient: config.K8sClient,
 		logger:    config.Logger,
 	}
 
-	return newService, nil
+	return s, nil
 }
 
-// Service implements the certificate TPR service.
 type Service struct {
 	// Dependencies.
+
 	k8sClient kubernetes.Interface
 	logger    micrologger.Logger
 }
 
-// SearchCerts watches for all secrets of a cluster  and returns it as
-// assets bundle.
-func (s *Service) SearchCerts(clusterID string) (AssetsBundle, error) {
-	assetsBundle := make(AssetsBundle)
+func (s *Service) SearchCluster(clusterID string) (Cluster, error) {
+	var cluster Cluster
+	var err error
 
-	for _, componentName := range ClusterComponents {
-		ab, err := s.SearchCertsForComponent(clusterID, componentName.String())
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
+	err = s.searchError(&cluster.APIServer, clusterID, apiCert, err)
+	err = s.searchError(&cluster.CalicoClient, clusterID, calicoCert, err)
+	err = s.searchError(&cluster.EtcdServer, clusterID, etcdCert, err)
+	err = s.searchError(&cluster.ServiceAccount, clusterID, serviceAccountCert, err)
+	err = s.searchError(&cluster.Worker, clusterID, workerCert, err)
 
-		for k, v := range ab {
-			assetsBundle[k] = v
-		}
+	if err != nil {
+		return Cluster{}, microerror.Mask(err)
 	}
 
-	return assetsBundle, nil
+	return cluster, nil
 }
 
-// SearchCertsForComponent watches for secrets of a single cluster component and
-// returns it as assets bundle.
-func (s *Service) SearchCertsForComponent(clusterID, componentName string) (AssetsBundle, error) {
-	// TODO we should also do a list. In case the secrets have already been
-	// created we might miss them with only watching.
-	watcher, err := s.k8sClient.Core().Secrets(api.NamespaceDefault).Watch(apismetav1.ListOptions{
-		// Select only secrets that match the given component and the given cluster
-		// clusterID.
-		LabelSelector: fmt.Sprintf(
-			"%s=%s, %s=%s",
-			ComponentLabel,
-			componentName,
-			ClusterIDLabel,
-			clusterID,
-		),
-	})
+func (s *Service) SearchMonitoring(clusterID string) (Monitoring, error) {
+	var monitoring Monitoring
+	var err error
+
+	err = s.searchError(&monitoring.KubeStateMetrics, clusterID, kubeStateMetricsCert, err)
+	err = s.searchError(&monitoring.Prometheus, clusterID, prometheusCert, err)
+
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return Monitoring{}, microerror.Mask(err)
 	}
 
-	assetsBundle := make(AssetsBundle)
+	return monitoring, nil
+}
+
+func (s *Service) searchError(tls *TLS, clusterID string, cert cert, err error) error {
+	if err != nil {
+		return err
+	}
+	return s.search(tls, clusterID, cert)
+}
+
+func (s *Service) search(tls *TLS, clusterID string, cert cert) error {
+	// Select only secrets that match the given certificate and the given
+	// cluster clusterID.
+	selector := fmt.Sprintf("%s=%s, %s=%s", certficateLabel, cert, clusterIDLabel, clusterID)
+
+	watcher, err := s.k8sClient.Core().Secrets(SecretNamesapce).Watch(metav1.ListOptions{
+		LabelSelector: selector,
+	})
+	if err != nil {
+		return microerror.Mask(err)
+	}
 
 	defer watcher.Stop()
+
 	for {
 		select {
 		case event, ok := <-watcher.ResultChan():
 			if !ok {
-				return nil, microerror.Maskf(secretsRetrievalFailedError, "secrets channel was already closed")
+				return microerror.Maskf(executionError, "watching secrets, selector = %q: unexpected closed channel", selector)
 			}
 
 			switch event.Type {
 			case watch.Added:
-				secret := event.Object.(*v1.Secret)
-				component := ClusterComponent(secret.Labels[ComponentLabel])
-
-				if !ValidComponent(component, ClusterComponents) {
-					return nil, microerror.Maskf(secretsRetrievalFailedError, "unknown clusterComponent %s", component)
+				err := fillTLSFromSecret(tls, event.Object, clusterID, cert)
+				if err != nil {
+					return microerror.Maskf(err, "watching secrets, selector = %q")
 				}
 
-				for _, assetType := range TLSAssetTypes {
-					asset, ok := secret.Data[assetType.String()]
-					if !ok {
-						return nil, microerror.Maskf(secretsRetrievalFailedError, "malformed secret was missing %v asset", assetType)
-					}
-
-					assetsBundle[AssetsBundleKey{component, assetType}] = asset
-				}
-
-				return assetsBundle, nil
+				return nil
 			case watch.Deleted:
-				// Noop. Ignore deleted events. These are handled by the certificate
-				// operator.
+				// Noop. Ignore deleted events. These are
+				// handled by the certificate operator.
 			case watch.Error:
-				return nil, microerror.Maskf(secretsRetrievalFailedError, "there was an error in the watcher: %v", apierrors.FromObject(event.Object))
+				return microerror.Maskf(executionError, "watching secrets, selector = %q: %v", selector, apierrors.FromObject(event.Object))
 			}
-		case <-time.After(WatchTimeOut):
-			return nil, microerror.Maskf(secretsRetrievalFailedError, "timed out waiting for secrets")
+		case <-time.After(watchTimeOut):
+			return microerror.Maskf(timeoutError, "waiting secrets, selector = %q", selector)
 		}
 	}
+}
+
+func fillTLSFromSecret(tls *TLS, obj runtime.Object, clusterID string, cert cert) error {
+	secret, ok := obj.(*corev1.Secret)
+	if !ok || secret == nil {
+		return microerror.Maskf(wrongTypeError, "expected '%T', got '%T'", secret, obj)
+	}
+
+	gotClusterID := secret.Labels[clusterIDLabel]
+	if clusterID != gotClusterID {
+		return microerror.Maskf(invalidSecretError, "expected clusterID = %q, got %q", clusterID, gotClusterID)
+	}
+	gotcert := secret.Labels[certficateLabel]
+	if string(cert) != gotcert {
+		return microerror.Maskf(invalidSecretError, "expected certificate = %q, got %q", cert, gotcert)
+	}
+
+	if tls.CA, ok = secret.Data["ca"]; !ok {
+		return microerror.Maskf(invalidSecretError, "%q key missing", "ca")
+	}
+	if tls.Crt, ok = secret.Data["crt"]; !ok {
+		return microerror.Maskf(invalidSecretError, "%q key missing", "crt")
+	}
+	if tls.Key, ok = secret.Data["key"]; !ok {
+		return microerror.Maskf(invalidSecretError, "%q key missing", "key")
+	}
+
+	return nil
 }
