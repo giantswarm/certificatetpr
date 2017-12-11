@@ -3,7 +3,8 @@ package certificatetpr
 import "github.com/giantswarm/certificatetpr/spec"
 
 type Searcher interface {
-	SearchCerts(clusterID string) (AssetsBundle, error)
+	SearchCluster(clusterID string) (Cluster, error)
+	SearchMonitoring(clusterID string) (Monitoring, error)
 }
 
 type Spec struct {
